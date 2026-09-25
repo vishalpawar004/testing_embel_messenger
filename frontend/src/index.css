@@ -1,0 +1,41 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500&family=Space+Grotesk:wght@500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-body: "IBM Plex Sans", sans-serif;
+  --font-heading: "Space Grotesk", sans-serif;
+}
+
+.theme-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #fd7e13 #fff0e5;
+}
+
+.theme-scrollbar::-webkit-scrollbar {
+  width: 7px;
+}
+
+.theme-scrollbar::-webkit-scrollbar-track {
+  margin: 4px 0;
+  border-radius: 999px;
+  background: #fff0e5;
+}
+
+.theme-scrollbar::-webkit-scrollbar-thumb {
+  border: 2px solid #fff0e5;
+  border-radius: 999px;
+  background: #fd7e13;
+}
+
+.theme-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #e96f08;
+}
+
+.hidden-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hidden-scrollbar::-webkit-scrollbar {
+  display: none;
+}

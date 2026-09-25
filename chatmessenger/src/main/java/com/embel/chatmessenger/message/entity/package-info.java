@@ -1,0 +1,1 @@
+package com.embel.chatmessenger.message.entity;

@@ -1,0 +1,34 @@
+/* A subtle, app-themed scrollbar for any element with className="theme-scrollbar".
+   Used instead of the browser/OS default scrollbar (which was showing up as a
+   thick bar with big up/down arrow buttons). Combine with `overflow-y-auto`
+   (not `overflow-y-scroll`) so the bar only appears once content actually
+   overflows the container. */
+
+.theme-scrollbar {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: #E4E0D6 transparent; /* Firefox: thumb, track */
+}
+
+.theme-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.theme-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.theme-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #E4E0D6;
+  border-radius: 9999px;
+}
+
+.theme-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #fd7e13;
+}
+
+/* Removes the native up/down arrow buttons at each end of the track. */
+.theme-scrollbar::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
