@@ -121,9 +121,6 @@ function MessageBubble({ chat, message }) {
     activeConversationId,
     pinnedMessageIds,
     toggleMessagePin,
-    activeConversation,
-    currentUserId,
-    groupMembers,
     starredMessageIds,
     toggleMessageStar,
     emojiPickerMessageId,
@@ -151,18 +148,11 @@ function MessageBubble({ chat, message }) {
   const selected = selectedMessageIds?.includes(message.id);
   const isSending = message.status === "sending";
   const isFailed = message.status === "failed";
-  const currentMember = groupMembers?.find(
-    (member) => String(member.id) === String(currentUserId)
-  );
 
-  const isGroupAdmin =
-    activeConversation?.type === "space" &&
-    ["ADMIN", "admin", "OWNER", "owner"].includes(
-      String(currentMember?.role || "")
-    );
+  // Only the creator can edit or delete their own messages
+  const canDeleteMessage = Boolean(message.mine);
+  const canEditMessage = Boolean(message.mine);
 
-  const canDeleteMessage = isGroupAdmin;
-  const canEditMessage = message.mine;
   const [menuPosition, setMenuPosition] = useState(null);
   const [infoOpen, setInfoOpen] = useState(false);
   const menuRef = useRef(null);
@@ -348,6 +338,7 @@ function MessageBubble({ chat, message }) {
       onClick: openWith,
     },
     ...(message.mine ? [
+      { divider: true },
       {
         label: "Edit",
         icon: Pencil,
@@ -357,20 +348,19 @@ function MessageBubble({ chat, message }) {
           closeMenu();
         },
       },
-    ] : []),
-    { divider: true },
-    {
-      label: "Delete",
-      icon: Trash2,
-      danger: true,
-      onClick: () => {
-        setMessageToDelete({
-          conversationId: activeConversationId,
-          messageId: message.id,
-        });
-        closeMenu();
+      {
+        label: "Delete",
+        icon: Trash2,
+        danger: true,
+        onClick: () => {
+          setMessageToDelete({
+            conversationId: activeConversationId,
+            messageId: message.id,
+          });
+          closeMenu();
+        },
       },
-    },
+    ] : []),
   ];
 
   const isRealImage = isImageFile(message);
@@ -413,7 +403,7 @@ function MessageBubble({ chat, message }) {
           </button>
         )}
 
-        {/* Hover Quick Action Toolbar (Pin, React, Edit, Delete) */}
+        {/* Hover Quick Action Toolbar */}
         <div className={`absolute -top-8 z-20 flex items-center gap-0.5 rounded-full border border-[#E4E0D6] bg-white px-1.5 py-0.5 shadow-md opacity-0 transition-opacity group-hover:opacity-100 ${message.mine ? "right-0" : "left-0"}`}>
           <button
             type="button"
@@ -435,22 +425,9 @@ function MessageBubble({ chat, message }) {
             <Smile size={14} />
           </button>
 
-          {canDeleteMessage ? (
-            <button
-              type="button"
-              title="Delete message"
-              onClick={() =>
-                setMessageToDelete({
-                  conversationId: activeConversationId,
-                  messageId: message.id,
-                })
-              }
-              className="rounded-full p-1 text-[#6B7178] hover:bg-[#FFF1F0] hover:text-[#D14343] transition-colors"
-            >
-              <Trash2 size={14} />
-            </button>
-          ) : (
-            canEditMessage && (
+          {/* Only shown if it is your own message */}
+          {message.mine && (
+            <>
               <button
                 type="button"
                 title="Edit message"
@@ -462,7 +439,21 @@ function MessageBubble({ chat, message }) {
               >
                 <Pencil size={14} />
               </button>
-            )
+
+              <button
+                type="button"
+                title="Delete message"
+                onClick={() =>
+                  setMessageToDelete({
+                    conversationId: activeConversationId,
+                    messageId: message.id,
+                  })
+                }
+                className="rounded-full p-1 text-[#6B7178] hover:bg-[#FFF1F0] hover:text-[#D14343] transition-colors"
+              >
+                <Trash2 size={14} />
+              </button>
+            </>
           )}
         </div>
 
@@ -628,7 +619,7 @@ function MessageBubble({ chat, message }) {
               onClick={(e) => {
                 e.stopPropagation();
                 if (myReaction) {
-                  handleEmojiClick(myReaction); // Click toggles off
+                  handleEmojiClick(myReaction);
                 }
               }}
               title={myReaction ? "Click to remove your reaction" : "Reactions"}
@@ -650,7 +641,7 @@ function MessageBubble({ chat, message }) {
           )}
         </div>
 
-        {/* Timestamps, Status & Pin/Star icons (mt-3.5 provides clean breathing room so the badge never overlaps the time) */}
+        {/* Timestamps, Status & Pin/Star icons */}
         <div
           className={`${
             reactions.length > 0 ? "mt-3.5" : "mt-1.5"
