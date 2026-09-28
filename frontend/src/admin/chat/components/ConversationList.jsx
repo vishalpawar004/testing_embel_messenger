@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Pin, Search, ShieldCheck, MoreHorizontal, UserRound, Trash2, CheckSquare, Square, X, Calendar, AlertTriangle, Loader2 } from "lucide-react";
+import { Pin, Search, MoreHorizontal, UserRound, Trash2, CheckSquare, Square, X, Calendar, AlertTriangle, Loader2 } from "lucide-react";
 import "./theme-scrollbar.css";
 
 function formatConversationTime(isoString) {
@@ -64,9 +64,6 @@ export default function ConversationList({ chat }) {
     groupsLoading,
     groupsError,
     isSuperAdmin,
-    allGroups = [],
-    allGroupsLoading,
-    allGroupsError,
     openConversation,
     notifications = [],
     setBoardView,
@@ -82,20 +79,13 @@ export default function ConversationList({ chat }) {
   // Bulk Selection Dialog States
   const [selectModalOpen, setSelectModalOpen] = useState(false);
   const [selectedChatIds, setSelectedChatIds] = useState([]);
-  
+
   // Confirmation Modal States
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [isClearing, setIsClearing] = useState(false);
   const [clearError, setClearError] = useState("");
-
-  const activeAllGroups = useMemo(() => {
-    return allGroups.filter((g) => {
-      const status = String(g.status || "").toUpperCase();
-      return status !== "DELETED" && status !== "INACTIVE" && !g.deleted;
-    });
-  }, [allGroups]);
 
   const filteredConversations = useMemo(() => {
     if (!searchQuery.trim()) return conversationList;
@@ -107,21 +97,10 @@ export default function ConversationList({ chat }) {
     );
   }, [conversationList, searchQuery]);
 
-  const filteredAllGroups = useMemo(() => {
-    if (!searchQuery.trim()) return activeAllGroups;
-    const q = searchQuery.toLowerCase();
-    return activeAllGroups.filter(
-      (g) =>
-        (g.name || "").toLowerCase().includes(q) ||
-        (g.description || "").toLowerCase().includes(q)
-    );
-  }, [activeAllGroups, searchQuery]);
-
-  // Unified unique chat items with strict 1-to-1 vs Group separation
+  // Unified unique chat items purely from conversationList
   const selectableChats = useMemo(() => {
     const map = new Map();
 
-    // 1. Process active conversations (DMs and Groups)
     conversationList.forEach((item) => {
       const targetId = Number(item.chatId ?? item.id);
       if (targetId && !map.has(targetId)) {
@@ -136,22 +115,8 @@ export default function ConversationList({ chat }) {
       }
     });
 
-    // 2. Process super admin all groups
-    activeAllGroups.forEach((group) => {
-      const targetId = Number(group.chatId ?? group.id);
-      if (targetId && !map.has(targetId)) {
-        map.set(targetId, {
-          id: targetId,
-          name: group.name || `Group #${targetId}`,
-          type: "Group",
-          initials: initialsFromName(group.name),
-          color: "#7C5CFC",
-        });
-      }
-    });
-
     return Array.from(map.values());
-  }, [conversationList, activeAllGroups]);
+  }, [conversationList]);
 
   const getUnreadCount = (conv) => {
     if (!conv) return 0;
@@ -186,7 +151,7 @@ export default function ConversationList({ chat }) {
   // Opens dialog with NOTHING pre-selected
   const openSelectionDialog = () => {
     setMenuOpen(false);
-    setSelectedChatIds([]); // Starts empty
+    setSelectedChatIds([]);
     setSelectModalOpen(true);
   };
 
@@ -412,86 +377,6 @@ export default function ConversationList({ chat }) {
             );
           })}
         </div>
-
-        {/* Super Admin Section */}
-        {isSuperAdmin && (
-          <div className="border-t border-[#EDEAE2] p-2 pb-4">
-            <div className="mb-1.5 flex items-center gap-1.5 px-3 pt-3">
-              <ShieldCheck size={13} className="text-[#fd7e13]" />
-              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#9AA0A6]">
-                All groups <span className="text-[#fd7e13]">· Super Admin</span>
-              </p>
-              {!allGroupsLoading && !allGroupsError && (
-                <span className="ml-auto rounded-full bg-[#F1F0EC] px-2 py-0.5 text-[10px] font-medium text-[#6B7178]">
-                  {filteredAllGroups.length}
-                </span>
-              )}
-            </div>
-
-            {allGroupsLoading && (
-              <p className="px-3 py-2 text-[12px] text-[#9AA0A6]">Loading all groups…</p>
-            )}
-            {!allGroupsLoading && allGroupsError && (
-              <p className="px-3 py-2 text-[12px] text-[#D14343]">{allGroupsError}</p>
-            )}
-            {!allGroupsLoading && !allGroupsError && filteredAllGroups.length === 0 && (
-              <p className="px-3 py-2 text-[12px] text-[#9AA0A6]">
-                {searchQuery ? "No groups match your search." : "No active groups in the system."}
-              </p>
-            )}
-
-            {filteredAllGroups.map((group) => {
-              const initials = initialsFromName(group.name);
-              const unread = getUnreadCount(group);
-              const hasUnread = unread > 0;
-
-              return (
-                <button
-                  key={group.id}
-                  type="button"
-                  onClick={() => openConversation(group.id)}
-                  className={`flex w-full items-center gap-3 rounded-[9px] p-3 text-left transition-colors ${
-                    String(activeConversationId) === String(group.id)
-                      ? "bg-[#FFF0E5]"
-                      : "hover:bg-[#F8F7F5]"
-                  }`}
-                >
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#9AA0A6] text-[12px] font-semibold text-white">
-                    {initials}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center justify-between gap-2">
-                      <span
-                        className={`truncate text-[13px] ${
-                          hasUnread ? "font-semibold text-[#1E2328]" : "font-medium text-[#1E2328]"
-                        }`}
-                      >
-                        {group.name}
-                      </span>
-                      <span className="shrink-0 text-[10.5px] text-[#9AA0A6]">
-                        {group.memberCount} member{group.memberCount === 1 ? "" : "s"}
-                      </span>
-                    </span>
-                    <span className="mt-0.5 flex items-center justify-between gap-2">
-                      <span
-                        className={`truncate text-[12px] ${
-                          hasUnread ? "font-medium text-[#1E2328]" : "text-[#6B7178]"
-                        }`}
-                      >
-                        {group.description || ""}
-                      </span>
-                      {hasUnread && (
-                        <span className="flex h-4 min-w-[16px] shrink-0 items-center justify-center rounded-full bg-[#fd7e13] px-1 text-[10px] font-bold text-white">
-                          {unread > 99 ? "99+" : unread}
-                        </span>
-                      )}
-                    </span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        )}
       </div>
 
       {/* 1. Modal: Multi-Select Chats for Bulk Clean */}

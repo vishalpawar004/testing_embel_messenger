@@ -1,51 +1,110 @@
-import { ChevronDown, Search } from "lucide-react";
+import { Search, ShieldCheck, Shield, User } from "lucide-react";
 import embelLogo from "../../../assets/logo-embel.png";
 import SettingsMenu from "./Settingsmenu";
+import { getCurrentUser } from "../../../services/authService";
+
+function initialsFromName(name) {
+  return (
+    (name || "?")
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((word) => word[0].toUpperCase())
+      .join("") || "?"
+  );
+}
 
 export default function TopHeader({ chat }) {
-  const { statusMenuOpen, setStatusMenuOpen, currentStatus, statusOptions, setStatus } = chat;
+  const { currentUserName, isSuperAdmin } = chat;
+
+  const currentUser = getCurrentUser();
+  const userName = currentUserName || currentUser?.name || "User";
+
+  // Normalize role string (e.g., ROLE_SUPER_ADMIN, SUPER_ADMIN, ADMIN, USER)
+  const rawRole = String(currentUser?.role || (isSuperAdmin ? "SUPER_ADMIN" : "USER"))
+    .toUpperCase()
+    .replace(/^ROLE_/, "");
+
+  const isSuper = isSuperAdmin || rawRole.includes("SUPER");
+  const isAdmin = !isSuper && rawRole.includes("ADMIN");
+
+  // Display label and styling based on role
+  let roleLabel = "Member";
+  let roleBadgeClass = "bg-[#F1F0EC] text-[#6B7178] border-[#E4E0D6]";
+  let RoleIcon = User;
+
+  if (isSuper) {
+    roleLabel = "Super Admin";
+    roleBadgeClass = "bg-[#FFF0E5] text-[#fd7e13] border-[#FDBA74]/40 font-semibold";
+    RoleIcon = ShieldCheck;
+  } else if (isAdmin) {
+    roleLabel = "Admin";
+    roleBadgeClass = "bg-[#EFF6FF] text-[#2563EB] border-[#BFDBFE] font-semibold";
+    RoleIcon = Shield;
+  }
+
+  const initials = initialsFromName(userName);
 
   return (
-    <div className="flex items-center gap-4 border-b border-[#EDEAE2] px-5 py-3">
+    <div className="flex items-center gap-4 border-b border-[#EDEAE2] bg-white px-6 py-2.5">
+      {/* Brand Logo */}
       <div className="flex shrink-0 items-center gap-2">
-        <img src={embelLogo} alt="Embel" className="h-12 w-auto object-contain" />
+        <img src={embelLogo} alt="Embel" className="h-11 w-auto object-contain" />
       </div>
 
-      <label className="mx-auto hidden w-full max-w-md items-center gap-2 rounded-full bg-[#F1F0EC] px-4 py-2 text-[#6B7178] md:flex">
-        <Search size={16} />
-        <input className="w-full bg-transparent text-[13px] outline-none placeholder:text-[#9AA0A6]" placeholder="Search chat" />
+      {/* Center Search Input */}
+      <label className="mx-auto hidden w-full max-w-md items-center gap-2.5 rounded-full border border-transparent bg-[#F4F3EF] px-4 py-2 text-[#6B7178] transition-all focus-within:border-[#fd7e13] focus-within:bg-white focus-within:shadow-sm md:flex">
+        <Search size={15} className="shrink-0 text-[#9AA0A6]" />
+        <input
+          className="w-full bg-transparent text-[13px] outline-none placeholder:text-[#9AA0A6]"
+          placeholder="Search chat or conversations..."
+        />
       </label>
 
-      <div className="ml-auto flex shrink-0 items-center gap-2">
-        {/* Render SettingsMenu directly; it contains its own Settings button, toggle state, and dropdown */}
+      {/* Right Controls: Settings + Modern User Role Pill */}
+      <div className="ml-auto flex shrink-0 items-center gap-3">
+        {/* Settings Dropdown Button */}
         <SettingsMenu />
 
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setStatusMenuOpen((open) => !open)}
-            className="flex items-center gap-2 rounded-full bg-[#F1F0EC] px-3 py-1.5 text-[13px] font-medium text-[#1E2328] hover:bg-[#EAE8E1]"
-          >
-            <span className="h-2 w-2 rounded-full" style={{ background: currentStatus.color }} />
-            {currentStatus.label}
-            <ChevronDown size={14} className="text-[#6B7178]" />
-          </button>
+        <div className="h-6 w-px bg-[#EDEAE2]" />
 
-          {statusMenuOpen && (
-            <div className="absolute right-0 top-[calc(100%+6px)] z-20 w-40 overflow-hidden rounded-[10px] border border-[#EDEAE2] bg-white py-1 shadow-[0_8px_20px_rgba(30,35,40,0.12)]">
-              {statusOptions.map((option) => (
-                <button
-                  key={option.label}
-                  type="button"
-                  onClick={() => { setStatus(option.label); setStatusMenuOpen(false); }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-[#1E2328] hover:bg-[#F8F7F5]"
-                >
-                  <span className="h-2 w-2 rounded-full" style={{ background: option.color }} />
-                  {option.label}
-                </button>
-              ))}
+        {/* User Card Pill */}
+        <div
+          title={`Logged in as ${userName} (${roleLabel})`}
+          className="flex items-center gap-3 rounded-full border border-[#EDEAE2] bg-[#FAF9F6] py-1 pl-1 pr-3.5 shadow-sm transition-all hover:border-[#D5D0C5] hover:bg-white"
+        >
+          {/* Avatar with Status Indicator Dot */}
+          <div className="relative">
+            <span
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white shadow-sm ring-2 ring-white"
+              style={{
+                background: isSuper
+                  ? "linear-gradient(135deg, #fd7e13 0%, #ea580c 100%)"
+                  : isAdmin
+                  ? "linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)"
+                  : "linear-gradient(135deg, #64748B 0%, #475569 100%)",
+              }}
+            >
+              {initials}
+            </span>
+            {/* Online Green Indicator Dot */}
+            <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-[#10B981]" />
+          </div>
+
+          {/* Name & Styled Role Badge */}
+          <div className="flex flex-col text-left">
+            <span className="max-w-[130px] truncate text-[13px] font-semibold text-[#1E2328]">
+              {userName}
+            </span>
+            <div className="mt-0.5 flex items-center">
+              <span
+                className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.2 text-[10px] tracking-wide ${roleBadgeClass}`}
+              >
+                <RoleIcon size={10} className="shrink-0" />
+                {roleLabel}
+              </span>
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>

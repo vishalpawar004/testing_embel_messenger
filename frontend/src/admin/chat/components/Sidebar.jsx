@@ -1,5 +1,5 @@
 import {
-  AtSign, ChevronDown, ChevronUp, LayoutDashboard, Pin, Plus, ShieldCheck, Star,
+  AtSign, ChevronDown, ChevronUp, LayoutDashboard, Pin, Plus, Star,
 } from "lucide-react";
 import NewChatMenu from "./NewChatMenu";
 import "./theme-scrollbar.css";
@@ -17,18 +17,11 @@ export default function Sidebar({ chat }) {
     directMessagesExpanded, setDirectMessagesExpanded,
     spacesExpanded, setSpacesExpanded,
     activeShortcut, setActiveShortcut,
-    directConversations, spaceConversations,
-    isChatVisible, activeConversationId, openConversation,
-    pinnedConversations, groupsLoading, groupsError,
-    isSuperAdmin, allGroups, allGroupsLoading, allGroupsError,
+    directConversations = [], spaceConversations = [],
+    activeConversationId, openConversation,
+    pinnedConversations = [], groupsLoading, groupsError,
     notifications = [],
   } = chat;
-
-  // Active groups only
-  const activeAllGroups = allGroups.filter((g) => {
-    const status = String(g.status || "").toUpperCase();
-    return status !== "DELETED" && status !== "INACTIVE" && !g.deleted;
-  });
 
   const getUnreadCount = (conv) => {
     if (String(activeConversationId) === String(conv.id)) {
@@ -45,6 +38,11 @@ export default function Sidebar({ chat }) {
     ).length;
 
     return fromNotifs > 0 ? fromNotifs : conv.unread || 0;
+  };
+
+  const handleSelectConversation = (id) => {
+    if (setActiveShortcut) setActiveShortcut("conversation");
+    if (openConversation) openConversation(id);
   };
 
   return (
@@ -67,38 +65,46 @@ export default function Sidebar({ chat }) {
       >
         {shortcutsExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}Shortcuts
       </button>
+
       {shortcutsExpanded && (
-        <>
+        <div className="mb-4">
+          {/* Home Button: Highlighted ONLY when activeShortcut === 'home' */}
           <button
             type="button"
             onClick={() => setActiveShortcut("home")}
-            className={`mb-1 flex w-full items-center gap-3 rounded-[8px] px-3 py-2.5 text-left text-[13px] ${
+            className={`mb-1 flex w-full items-center gap-3 rounded-[8px] px-3 py-2.5 text-left text-[13px] transition-colors ${
               activeShortcut === "home"
-                ? "bg-[#FFF0E5] font-medium text-[#fd7e13]"
+                ? "bg-[#FFF0E5] font-semibold text-[#fd7e13]"
                 : "text-[#5C6570] hover:bg-[#FFF0E5] hover:text-[#fd7e13]"
             }`}
           >
             <LayoutDashboard size={17} />Home
           </button>
+
           <button
             type="button"
             onClick={() => setActiveShortcut("mentions")}
-            className={`mb-1 flex w-full items-center gap-3 rounded-[8px] px-3 py-2.5 text-left text-[13px] ${
-              activeShortcut === "mentions" ? "bg-[#FFF0E5] font-medium text-[#fd7e13]" : "text-[#5C6570] hover:bg-[#FFF0E5]"
+            className={`mb-1 flex w-full items-center gap-3 rounded-[8px] px-3 py-2.5 text-left text-[13px] transition-colors ${
+              activeShortcut === "mentions"
+                ? "bg-[#FFF0E5] font-semibold text-[#fd7e13]"
+                : "text-[#5C6570] hover:bg-[#FFF0E5] hover:text-[#fd7e13]"
             }`}
           >
             <AtSign size={17} />Mentions
           </button>
+
           <button
             type="button"
             onClick={() => setActiveShortcut("starred")}
-            className={`mb-1 flex w-full items-center gap-3 rounded-[8px] px-3 py-2.5 text-left text-[13px] ${
-              activeShortcut === "starred" ? "bg-[#FFF0E5] font-medium text-[#fd7e13]" : "text-[#5C6570] hover:bg-[#FFF0E5]"
+            className={`mb-1 flex w-full items-center gap-3 rounded-[8px] px-3 py-2.5 text-left text-[13px] transition-colors ${
+              activeShortcut === "starred"
+                ? "bg-[#FFF0E5] font-semibold text-[#fd7e13]"
+                : "text-[#5C6570] hover:bg-[#FFF0E5] hover:text-[#fd7e13]"
             }`}
           >
             <Star size={17} />Starred
           </button>
-        </>
+        </div>
       )}
 
       {/* Direct Messages Section */}
@@ -109,21 +115,23 @@ export default function Sidebar({ chat }) {
       >
         {directMessagesExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}Direct messages
       </button>
+
       {directMessagesExpanded && (
-        <div className="mb-6">
+        <div className="mb-5">
           {directConversations.map((conversation) => {
             const unread = getUnreadCount(conversation);
             const hasUnread = unread > 0;
+            const isSelected = activeShortcut !== "home" && String(activeConversationId) === String(conversation.id);
 
             return (
               <button
                 key={conversation.id}
                 type="button"
-                onClick={() => openConversation(conversation.id)}
-                className={`mb-1 flex w-full items-center gap-3 rounded-[8px] px-3 py-2.5 text-left text-[13px] ${
-                  isChatVisible && String(activeConversationId) === String(conversation.id)
-                    ? "bg-[#FFF0E5] font-medium text-[#fd7e13]"
-                    : "text-[#5C6570] hover:bg-[#FFF0E5]"
+                onClick={() => handleSelectConversation(conversation.id)}
+                className={`mb-1 flex w-full items-center gap-3 rounded-[8px] px-3 py-2.5 text-left text-[13px] transition-colors ${
+                  isSelected
+                    ? "bg-[#FFF0E5] font-semibold text-[#fd7e13]"
+                    : "text-[#5C6570] hover:bg-[#FFF0E5] hover:text-[#fd7e13]"
                 }`}
               >
                 <span
@@ -159,6 +167,7 @@ export default function Sidebar({ chat }) {
       >
         {spacesExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}Groups
       </button>
+
       {spacesExpanded && (
         <div className="theme-scrollbar min-h-0 flex-1 overflow-y-auto pr-1">
           {groupsLoading && <p className="px-2 py-1.5 text-[11.5px] text-[#9AA0A6]">Loading groups…</p>}
@@ -166,19 +175,21 @@ export default function Sidebar({ chat }) {
           {!groupsLoading && !groupsError && spaceConversations.length === 0 && (
             <p className="px-2 py-1.5 text-[11.5px] text-[#9AA0A6]">No groups yet.</p>
           )}
+
           {spaceConversations.map((conversation) => {
             const unread = getUnreadCount(conversation);
             const hasUnread = unread > 0;
+            const isSelected = activeShortcut !== "home" && String(activeConversationId) === String(conversation.id);
 
             return (
               <button
                 key={conversation.id}
                 type="button"
-                onClick={() => openConversation(conversation.id)}
-                className={`mb-1 flex w-full items-center gap-2 rounded-[8px] px-2 py-2 text-left text-[12.5px] ${
-                  isChatVisible && String(activeConversationId) === String(conversation.id)
-                    ? "bg-[#FFF0E5] font-medium text-[#fd7e13]"
-                    : "text-[#5C6570] hover:bg-[#F8F7F5]"
+                onClick={() => handleSelectConversation(conversation.id)}
+                className={`mb-1 flex w-full items-center gap-2 rounded-[8px] px-2 py-2 text-left text-[12.5px] transition-colors ${
+                  isSelected
+                    ? "bg-[#FFF0E5] font-semibold text-[#fd7e13]"
+                    : "text-[#5C6570] hover:bg-[#F8F7F5] hover:text-[#fd7e13]"
                 }`}
               >
                 <span
@@ -203,58 +214,6 @@ export default function Sidebar({ chat }) {
               </button>
             );
           })}
-
-          {/* Super Admin Groups */}
-          {isSuperAdmin && (
-            <>
-              <div className="mb-1.5 mt-4 flex items-center gap-1.5 px-2 pt-3">
-                <ShieldCheck size={12} className="text-[#fd7e13]" />
-                <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[#9AA0A6]">
-                  All groups <span className="text-[#fd7e13]">· Super Admin</span>
-                </p>
-                {!allGroupsLoading && !allGroupsError && (
-                  <span className="ml-auto rounded-full bg-[#F1F0EC] px-1.5 py-0.5 text-[9.5px] font-medium text-[#6B7178]">
-                    {activeAllGroups.length}
-                  </span>
-                )}
-              </div>
-
-              {allGroupsLoading && <p className="px-2 py-1.5 text-[11.5px] text-[#9AA0A6]">Loading all groups…</p>}
-              {!allGroupsLoading && allGroupsError && <p className="px-2 py-1.5 text-[11.5px] text-[#D14343]">{allGroupsError}</p>}
-              {!allGroupsLoading && !allGroupsError && activeAllGroups.length === 0 && (
-                <p className="px-2 py-1.5 text-[11.5px] text-[#9AA0A6]">No active groups in the system.</p>
-              )}
-
-              {activeAllGroups.map((group) => {
-                const initials = initialsFromName(group.name);
-                const unread = getUnreadCount(group);
-                const hasUnread = unread > 0;
-
-                return (
-                  <button
-                    key={group.id}
-                    type="button"
-                    onClick={() => openConversation(group.id)}
-                    className={`mb-1 flex w-full items-center gap-2 rounded-[8px] px-2 py-2 text-left text-[12.5px] ${
-                      isChatVisible && String(activeConversationId) === String(group.id)
-                        ? "bg-[#FFF0E5] font-medium text-[#fd7e13]"
-                        : "text-[#5C6570] hover:bg-[#F8F7F5]"
-                    }`}
-                  >
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[6px] bg-[#9AA0A6] text-[9px] font-semibold text-white">{initials}</span>
-                    <span className="min-w-0 flex-1 truncate">{group.name}</span>
-                    {hasUnread ? (
-                      <span className="shrink-0 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#fd7e13] px-1 text-[9.5px] font-bold text-white">
-                        {unread > 99 ? "99+" : unread}
-                      </span>
-                    ) : (
-                      <span className="shrink-0 text-[9.5px] text-[#9AA0A6]">{group.memberCount}</span>
-                    )}
-                  </button>
-                );
-              })}
-            </>
-          )}
         </div>
       )}
     </aside>

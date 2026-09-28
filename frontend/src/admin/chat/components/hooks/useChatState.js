@@ -451,9 +451,17 @@ export default function useChatState() {
     closeNotificationPanel();
   };
 
-  const getUnreadCount = (conv) => {
+const getUnreadCount = (conv) => {
     if (!conv) return 0;
-    if (String(activeConversationId) === String(conv.id)) return 0;
+
+    // If this conversation is currently active, always return 0
+    if (
+      String(activeConversationId) === String(conv.id) ||
+      String(activeConversationId) === String(conv.chatId) ||
+      String(activeConversationId) === String(conv.groupId)
+    ) {
+      return 0;
+    }
 
     const fromNotifs = notifications.filter(
       (n) =>
@@ -464,9 +472,8 @@ export default function useChatState() {
           String(n.relatedUserId) === String(conv.contactId ?? conv.id))
     ).length;
 
-    return fromNotifs > 0 ? fromNotifs : conv.unread || 0;
+    return fromNotifs > 0 ? fromNotifs : conv.unread || conv.unreadCount || 0;
   };
-
   const activeConversation =
     conversationList.find(({ id }) => String(id) === String(activeConversationId)) ||
     (() => {
@@ -837,6 +844,7 @@ export default function useChatState() {
     await document.documentElement.requestFullscreen();
   };
 
+// Automatically clears notifications and informs backend for active conversation
   const clearReadForConversation = async (conversationId) => {
     if (!conversationId) return;
 
@@ -844,24 +852,32 @@ export default function useChatState() {
       conversationList.find((c) => String(c.id) === String(conversationId)) ||
       allGroups.find((g) => String(g.id) === String(conversationId));
 
-    const targetChatId = conv?.chatId ?? conv?.groupId ?? conv?.id ?? conversationId;
+    const targetChatId = conv?.chatId ?? conv?.id ?? conversationId;
     const targetGroupId = conv?.groupId ?? conv?.id ?? conversationId;
 
+    // 1. Immediately reset unread count to 0 in conversationList
     setConversationList((current) =>
       current.map((c) =>
-        String(c.id) === String(conversationId) ? { ...c, unread: 0 } : c
+        String(c.id) === String(conversationId) ||
+        String(c.chatId) === String(targetChatId) ||
+        String(c.groupId) === String(targetGroupId)
+          ? { ...c, unread: 0, unreadCount: 0 }
+          : c
       )
     );
 
+    // 2. Find all matching unread notifications
     const matchingNotifs = notifications.filter(
       (n) =>
         !n.read &&
         (String(n.relatedChatId) === String(conversationId) ||
           String(n.relatedGroupId) === String(conversationId) ||
           String(n.relatedChatId) === String(targetChatId) ||
-          String(n.relatedGroupId) === String(targetGroupId))
+          String(n.relatedGroupId) === String(targetGroupId) ||
+          String(n.relatedUserId) === String(conv?.contactId ?? ""))
     );
 
+    // 3. Mark matching notifications as read both locally and on backend
     if (matchingNotifs.length > 0) {
       setNotifications((current) =>
         current.map((n) =>
@@ -873,19 +889,17 @@ export default function useChatState() {
         Math.max(0, prev - matchingNotifs.length)
       );
 
-      matchingNotifs.forEach((n) => {
-        markNotificationReadRequest(n.id).catch(() => {});
-      });
+      // Call PATCH /api/notifications/{id}/read for each
+      await Promise.allSettled(
+        matchingNotifs.map((n) => markNotificationReadRequest(n.id))
+      );
 
       fetchUnreadNotificationCount();
     }
 
+    // 4. Mark chat as read on backend
     if (targetChatId) {
-      try {
-        await markChatAsReadRequest(targetChatId);
-      } catch {
-        // Non-fatal
-      }
+      await markChatAsReadRequest(targetChatId).catch(() => {});
     }
   };
 
@@ -897,7 +911,7 @@ export default function useChatState() {
 
   const openConversation = async (conversationId) => {
     setActiveConversationId(conversationId);
-    setActiveShortcut("home");
+    setActiveShortcut("conversation"); // Sets view to conversation, hiding Home list
 
     await clearReadForConversation(conversationId);
 
