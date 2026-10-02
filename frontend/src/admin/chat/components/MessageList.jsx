@@ -141,6 +141,8 @@ function MessageBubble({ chat, message }) {
     draft,
     setDraft,
     setMessagesByConversation,
+    canDeleteMessage: canDelete,
+    canEditMessage: canEdit,
   } = chat;
 
   const pinned = pinnedMessageIds?.includes(message.id);
@@ -149,9 +151,6 @@ function MessageBubble({ chat, message }) {
   const isSending = message.status === "sending";
   const isFailed = message.status === "failed";
 
-  // Only the creator can edit or delete their own messages
-  const canDeleteMessage = Boolean(message.mine);
-  const canEditMessage = Boolean(message.mine);
 
   const [menuPosition, setMenuPosition] = useState(null);
   const [infoOpen, setInfoOpen] = useState(false);
@@ -337,30 +336,32 @@ function MessageBubble({ chat, message }) {
       disabled: !message.fileUrl,
       onClick: openWith,
     },
-    ...(message.mine ? [
-      { divider: true },
-      {
-        label: "Edit",
-        icon: Pencil,
-        onClick: () => {
-          setEditingMessage(message);
-          setDraft(message.text || "");
-          closeMenu();
-        },
-      },
-      {
-        label: "Delete",
-        icon: Trash2,
-        danger: true,
-        onClick: () => {
-          setMessageToDelete({
-            conversationId: activeConversationId,
-            messageId: message.id,
-          });
-          closeMenu();
-        },
-      },
-    ] : []),
+    ...(canEdit(message) || canDelete(message) ? [{ divider: true }] : []),
+    ...(canEdit(message)
+      ? [{
+          label: "Edit",
+          icon: Pencil,
+          onClick: () => {
+            setEditingMessage(message);
+            setDraft(message.text || "");
+            closeMenu();
+          },
+        }]
+      : []),
+    ...(canDelete(message)
+      ? [{
+          label: "Delete",
+          icon: Trash2,
+          danger: true,
+          onClick: () => {
+            setMessageToDelete({
+              conversationId: activeConversationId,
+              messageId: message.id,
+            });
+            closeMenu();
+          },
+        }]
+      : []),
   ];
 
   const isRealImage = isImageFile(message);
@@ -404,7 +405,7 @@ function MessageBubble({ chat, message }) {
         )}
 
         {/* Hover Quick Action Toolbar */}
-        <div className={`absolute -top-8 z-20 flex items-center gap-0.5 rounded-full border border-[#E4E0D6] bg-white px-1.5 py-0.5 shadow-md opacity-0 transition-opacity group-hover:opacity-100 ${message.mine ? "right-0" : "left-0"}`}>
+        <div className={`absolute -top-8 z-20 flex items-center gap-0.5 rounded-full border border-[#E4E0D6] bg-white px-1.5 py-0.5 shadow-md opacity-0 transition-opacity group-hover:opacity-100 ${selectMode ? "hidden" : ""} ${message.mine ? "right-0" : "left-0"}`}>
           <button
             type="button"
             title={pinned ? "Unpin message" : "Pin message"}
@@ -425,35 +426,34 @@ function MessageBubble({ chat, message }) {
             <Smile size={14} />
           </button>
 
-          {/* Only shown if it is your own message */}
-          {message.mine && (
-            <>
-              <button
-                type="button"
-                title="Edit message"
-                onClick={() => {
-                  setEditingMessage(message);
-                  setDraft(message.text || "");
-                }}
-                className="rounded-full p-1 text-[#6B7178] hover:bg-[#FFF0E5] hover:text-[#fd7e13] transition-colors"
-              >
-                <Pencil size={14} />
-              </button>
+          {canEdit(message) && (
+            <button
+              type="button"
+              title="Edit message"
+              onClick={() => {
+                setEditingMessage(message);
+                setDraft(message.text || "");
+              }}
+              className="rounded-full p-1 text-[#6B7178] hover:bg-[#FFF0E5] hover:text-[#fd7e13] transition-colors"
+            >
+              <Pencil size={14} />
+            </button>
+          )}
 
-              <button
-                type="button"
-                title="Delete message"
-                onClick={() =>
-                  setMessageToDelete({
-                    conversationId: activeConversationId,
-                    messageId: message.id,
-                  })
-                }
-                className="rounded-full p-1 text-[#6B7178] hover:bg-[#FFF1F0] hover:text-[#D14343] transition-colors"
-              >
-                <Trash2 size={14} />
-              </button>
-            </>
+          {canDelete(message) && (
+            <button
+              type="button"
+              title="Delete message"
+              onClick={() =>
+                setMessageToDelete({
+                  conversationId: activeConversationId,
+                  messageId: message.id,
+                })
+              }
+              className="rounded-full p-1 text-[#6B7178] hover:bg-[#FFF1F0] hover:text-[#D14343] transition-colors"
+            >
+              <Trash2 size={14} />
+            </button>
           )}
         </div>
 
@@ -649,7 +649,7 @@ function MessageBubble({ chat, message }) {
         >
           {pinned && <span className="flex items-center gap-1 rounded-full bg-[#FFF0E5] px-1.5 py-[1px] text-[9.5px] font-medium text-[#fd7e13]"><Pin size={9} className="fill-[#fd7e13]" />Pinned</span>}
           {starred && <span className="flex items-center gap-1 rounded-full bg-[#FFF7E0] px-1.5 py-[1px] text-[9.5px] font-medium text-[#B8862E]"><Star size={9} className="fill-[#F4B400] text-[#F4B400]" />Starred</span>}
-          <button type="button" title={pinned ? "Unpin message" : "Pin message"} onClick={() => toggleMessagePin(message.id)} className={`rounded-full p-0.5 text-[#9AA0A6] opacity-0 transition-opacity hover:bg-[#F1F0EC] hover:text-[#fd7e13] group-hover:opacity-100 ${pinned ? "!opacity-100 text-[#fd7e13]" : ""}`}>
+          <button type="button" title={pinned ? "Unpin message" : "Pin message"} onClick={() => toggleMessagePin(message.id)} className={`rounded-full p-0.5 text-[#9AA0A6] opacity-0 transition-opacity hover:bg-[#F1F0EC] hover:text-[#fd7e13] group-hover:opacity-100 ${selectMode ? "hidden" : ""} ${pinned ? "!opacity-100 text-[#fd7e13]" : ""}`}>
             <Pin size={11} className={pinned ? "fill-[#fd7e13]" : ""} />
           </button>
           {isSending && <p className="text-[10px] text-[#9AA0A6]">Sending…</p>}

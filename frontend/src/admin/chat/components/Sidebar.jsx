@@ -81,29 +81,9 @@ export default function Sidebar({ chat }) {
             <LayoutDashboard size={17} />Home
           </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveShortcut("mentions")}
-            className={`mb-1 flex w-full items-center gap-3 rounded-[8px] px-3 py-2.5 text-left text-[13px] transition-colors ${
-              activeShortcut === "mentions"
-                ? "bg-[#FFF0E5] font-semibold text-[#fd7e13]"
-                : "text-[#5C6570] hover:bg-[#FFF0E5] hover:text-[#fd7e13]"
-            }`}
-          >
-            <AtSign size={17} />Mentions
-          </button>
+         
 
-          <button
-            type="button"
-            onClick={() => setActiveShortcut("starred")}
-            className={`mb-1 flex w-full items-center gap-3 rounded-[8px] px-3 py-2.5 text-left text-[13px] transition-colors ${
-              activeShortcut === "starred"
-                ? "bg-[#FFF0E5] font-semibold text-[#fd7e13]"
-                : "text-[#5C6570] hover:bg-[#FFF0E5] hover:text-[#fd7e13]"
-            }`}
-          >
-            <Star size={17} />Starred
-          </button>
+        
         </div>
       )}
 

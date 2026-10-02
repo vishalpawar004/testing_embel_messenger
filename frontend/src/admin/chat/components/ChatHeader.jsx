@@ -1,4 +1,5 @@
 import { Eraser, Folder, Info, Maximize2, MoreHorizontal, Pin, Trash2, UserRound, Users, UsersRound } from "lucide-react";
+import SelectionBar from "./SelectionBar";
 
 export default function ChatHeader({ chat }) {
   const {
@@ -8,9 +9,13 @@ export default function ChatHeader({ chat }) {
     groupOptionsOpen, setGroupOptionsOpen, openMemberDialog,
     cleanChat, deleteChat, activeConversationId,
     setViewingMemberId, isSuperAdmin, isGroupAdmin,
+    selectMode,
   } = chat;
 
   if (!activeConversation) return null;
+
+  // While selecting messages, the header becomes the selection bar
+  if (selectMode) return <SelectionBar chat={chat} />;
 
   const isSpace = activeConversation.type === "space";
 

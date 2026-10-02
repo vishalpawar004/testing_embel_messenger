@@ -306,15 +306,35 @@ export default function useChatState() {
     setSelectMode(false);
     setSelectedMessageIds([]);
   };
-  const bulkDeleteSelected = () => {
-    setMessagesByConversation((current) => ({
-      ...current,
-      [activeConversationId]: (current[activeConversationId] || []).filter(
-        (message) => !selectedMessageIds.includes(message.id)
-      ),
-    }));
+
+  
+const bulkDeleteSelected = async () => {
+  const conversationId = activeConversationId;
+  const allowedIds = (messagesByConversation[conversationId] || [])
+    .filter((m) => selectedMessageIds.includes(m.id) && canDeleteMessage(m))
+    .map((m) => m.id);
+
+  if (allowedIds.length === 0) {
     exitSelectMode();
-  };
+    return;
+  }
+
+  const deletedIds = [];
+  for (const id of allowedIds) {
+    try {
+      await deleteMessageRequest(id);
+      deletedIds.push(id);
+    } catch (error) {
+      console.error("Bulk delete failed for message", id, error);
+    }
+  }
+
+  setMessagesByConversation((current) => ({
+    ...current,
+    [conversationId]: (current[conversationId] || []).filter((m) => !deletedIds.includes(m.id)),
+  }));
+  exitSelectMode();
+};
 
   const [forwardMessageIds, setForwardMessageIds] = useState(null);
   const openForwardDialog = (messageIds) => setForwardMessageIds(Array.isArray(messageIds) ? messageIds : [messageIds]);
@@ -1043,10 +1063,15 @@ const getUnreadCount = (conv) => {
     );
   };
 
-  const deleteMessage = async () => {
-    if (!messageToDelete?.messageId) return;
-    const { conversationId, messageId } = messageToDelete;
+const deleteMessage = async () => {
+  if (!messageToDelete?.messageId) return;
+  const { conversationId, messageId } = messageToDelete;
 
+  const msg = (messagesByConversation[conversationId] || []).find((m) => m.id === messageId);
+  if (!canDeleteMessage(msg)) {
+    setMessageToDelete(null);
+    return;
+  }
     try {
       await deleteMessageRequest(messageId);
       setMessagesByConversation((current) => ({
@@ -1600,6 +1625,15 @@ const getUnreadCount = (conv) => {
 
     if (!plainText) return;
 
+    const target = (messagesByConversation[activeConversationId] || []).find(
+      (m) => m.id === messageId
+    );
+    if (!canEditMessage(target)) {
+      setEditingMessage(null);
+      setDraft("");
+      return;
+    }
+
     try {
       const result = await updateMessageRequest(messageId, plainText);
 
@@ -1838,15 +1872,33 @@ const getUnreadCount = (conv) => {
   const currentUserName = getCurrentUser()?.name || youMember.name;
   const currentUserId = getCurrentUser()?.userId ?? "you";
 
-  const currentUserMember = groupMembers.find(
-    (member) => String(member.id) === String(currentUserId)
+const currentUserMember = groupMembers.find(
+  (member) => String(member.id) === String(currentUserId)
+);
+
+const isGroupAdmin =
+  activeConversation?.type === "space" &&
+  ["ADMIN", "OWNER", "admin", "owner"].includes(
+    String(currentUserMember?.role || "")
   );
 
-  const isGroupAdmin =
-    activeConversation?.type === "space" &&
-    ["ADMIN", "OWNER", "admin", "owner"].includes(
-      String(currentUserMember?.role || "")
-    );
+const isSpaceChat = activeConversation?.type === "space";
+const hasGroupPower = isSuperAdmin || isGroupAdmin;
+
+// Group: only admin / super admin can delete. DM: you can delete your own.
+const canDeleteMessage = (message) => {
+  if (!message || ["deleted", "system", "activity"].includes(message.type)) return false;
+  if (isSpaceChat) return hasGroupPower;
+  return Boolean(message.mine);
+};
+
+// Group: members edit only their own text messages, admins can edit any.
+const canEditMessage = (message) => {
+  if (!message || message.type === "file" || ["deleted", "system", "activity"].includes(message.type)) return false;
+  if (isSpaceChat) return Boolean(message.mine) || hasGroupPower;
+  return Boolean(message.mine);
+};
+
 
   const deleteGroupAsSuperAdmin = async (conversationId) => {
     setGroupInfoError(null);
@@ -2152,6 +2204,7 @@ const getUnreadCount = (conv) => {
     markNotificationAsRead, markAllNotificationsAsRead, openNotificationTarget,
     getUnreadCount,
     fetchUnreadNotificationCount,
+    canDeleteMessage, canEditMessage,
 
     // Clear chat dialog features
     clearChatDialogOpen,

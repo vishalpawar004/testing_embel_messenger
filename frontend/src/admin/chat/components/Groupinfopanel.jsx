@@ -226,16 +226,16 @@ export default function GroupInfoPanel({ chat }) {
               <Eraser size={16} className="text-[#D14343]" />
               Clear Messages
             </button>
-          ) : (
+          ) : !isGroup ? (
             <button
               type="button"
-              onClick={cleanChat}
+              onClick={openClearChatDialog}
               className="flex items-center gap-2.5 rounded-lg px-1.5 py-2 text-left text-[13px] font-medium text-[#1E2328] hover:bg-white"
             >
-              <Trash2 size={16} className="text-[#6B7178]" />
+              <Eraser size={16} className="text-[#6B7178]" />
               Clean chat
             </button>
-          )}
+          ) : null}
 
           {isGroup && (
             <button

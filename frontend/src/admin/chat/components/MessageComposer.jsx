@@ -130,6 +130,38 @@ export default function MessageComposer({ chat }) {
     };
   }, []);
 
+  // =========================================================
+  // PASTE IMAGES / FILES ANYWHERE IN THE CHAT (like WhatsApp)
+  // =========================================================
+  useEffect(() => {
+    const handlePasteAnywhere = (event) => {
+      // Let normal input/textarea fields handle their own paste
+      const tag = event.target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+
+      const files = Array.from(event.clipboardData?.items || [])
+        .filter((item) => item.kind === "file")
+        .map((item) => item.getAsFile())
+        .filter(Boolean)
+        .map((file, idx) => {
+          // Pasted screenshots are all named "image.png", so give each a unique name
+          const ext = (file.type.split("/")[1] || "png").replace("jpeg", "jpg");
+          const isGenericName = !file.name || /^image\.\w+$/i.test(file.name);
+          return isGenericName
+            ? new File([file], `pasted-image-${Date.now()}-${idx}.${ext}`, { type: file.type })
+            : file;
+        });
+
+      if (files.length === 0) return; // plain text paste: leave alone
+
+      event.preventDefault();
+      appendFiles(files);
+    };
+
+    document.addEventListener("paste", handlePasteAnywhere);
+    return () => document.removeEventListener("paste", handlePasteAnywhere);
+  }, []);
+
   const mentionMatches = useMemo(() => {
     if (mentionQuery === null || !groupMembers?.length) return [];
     const query = mentionQuery.toLowerCase();
@@ -156,11 +188,17 @@ export default function MessageComposer({ chat }) {
     detectMention();
   };
 
+
+
+  
+
   const clearEditor = () => {
     if (editorRef.current) editorRef.current.innerHTML = "";
     setDraft("");
     setMentionQuery(null);
   };
+
+  
 
   const handleSend = () => {
     sendMessage();

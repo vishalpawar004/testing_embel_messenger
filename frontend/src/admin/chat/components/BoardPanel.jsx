@@ -65,6 +65,7 @@ export default function BoardPanel({ chat }) {
     messages = [],
     groupMembers,
     openMemberDialog,
+    activeConversation,
   } = chat;
 
   const [openMemberRowId, setOpenMemberRowId] = useState(null);
@@ -273,7 +274,9 @@ export default function BoardPanel({ chat }) {
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-[13px] font-semibold text-[#1E2328]">
-            {TITLES[boardView]}
+            {boardView === "info" && activeConversation?.type !== "space"
+              ? "Profile"
+              : TITLES[boardView]}
           </h3>
           <button
             type="button"

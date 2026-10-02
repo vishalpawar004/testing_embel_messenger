@@ -23,7 +23,8 @@ export default function MessageContextMenu({ chat }) {
     saveMessageAs, shareMessage, openMessageWith, openMessageInfo,
     setMessageToDelete, activeConversationId,
     setEditingMessage,
-setDraft,
+    setDraft,
+    canDeleteMessage, canEditMessage,
   } = chat;
 
   const menuRef = useRef(null);
@@ -80,30 +81,34 @@ setDraft,
     { label: "Save as", icon: Download, onClick: () => saveMessageAs(message) },
     { label: "Share", icon: Share2, onClick: () => shareMessage(message) },
     ...(isFile ? [{ label: "Open with", icon: ExternalLink, onClick: () => openMessageWith() }] : []),
-    ...(message.mine && message.type !== "file"
-  ? [
-      {
-        label: "Edit",
-        icon: Pencil,
-        onClick: () => {
-          setEditingMessage(message);
-          setDraft(message.text || "");
-          closeMessageContextMenu();
-        },
-      },
-    ]
-  : []),
+    ...(canEditMessage(message)
+      ? [
+          {
+            label: "Edit",
+            icon: Pencil,
+            onClick: () => {
+              setEditingMessage(message);
+              setDraft(message.text || "");
+              closeMessageContextMenu();
+            },
+          },
+        ]
+      : []),
 
-    { divider: true },
-    {
-      label: "Delete",
-      icon: Trash2,
-      danger: true,
-      onClick: () => {
-        setMessageToDelete({ conversationId: activeConversationId, messageId: message.id });
-        closeMessageContextMenu();
-      },
-    },
+    ...(canDeleteMessage(message)
+      ? [
+          { divider: true },
+          {
+            label: "Delete",
+            icon: Trash2,
+            danger: true,
+            onClick: () => {
+              setMessageToDelete({ conversationId: activeConversationId, messageId: message.id });
+              closeMessageContextMenu();
+            },
+          },
+        ]
+      : []),
   ];
 
   return (
